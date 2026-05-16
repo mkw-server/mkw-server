@@ -19,13 +19,17 @@ type WFCTalker struct {
 
 var wfcTalker *WFCTalker
 
-type MKWServerMessage uint8
-
+type RequestToMKWServer uint8
 const (
-	OpenRoom       = 0x00
-	JoinRoom       = 0x01
-	LeaveRoom      = 0x02
-	LogToWFCServer = 0xff
+	AddPlayer 		= 0x01 // Request from wfc-server to add a player
+	RemovePlayer	= 0x02 // Request from wfc-server to remove a player
+)
+
+type ResponseFromMKWServer uint8
+const (
+	Ready        = 0x00 // Response to wfc-server informing room is ready for players
+	JoinAccepted = 0x01 // Response to wfc-server confirming a successful AddPlayer
+	Log          = 0xff // Informs wfc-server of a mkw-server log
 )
 
 func NewWFCTalker(port uint16, serverAddress string) error {
@@ -47,7 +51,7 @@ func NewWFCTalker(port uint16, serverAddress string) error {
 	logging.Log("Talker created! (Hello wfc-server!)")
 
 	// immediately tell wfc-server the room address
-	sendRoomOpen()
+	sendReady()
 
 	return nil
 }
@@ -63,49 +67,49 @@ func Start() {
 				return
 			}
 			data := buf[:n]
-			HandleWFCPacket(data)
+			handleRequest(data)
 		}
 	}()
 }
 
-func sendRoomOpen() {
+func sendReady() {
 	buf := make([]byte, 3)
-	buf[0] = OpenRoom
+	buf[0] = Ready
 	binary.BigEndian.PutUint16(buf[1:], wfcTalker.port)
-	logging.Log("Sending OpenRoom to wfc-server")
+	logging.Log("Sending ResponseType.Ready to wfc-server")
 	SendToWFC(buf)
 }
 
-func HandleWFCPacket(msg []byte) {
+func handleRequest(msg []byte) {
 	// First byte indicates request type
 	requestType := msg[0]
 	switch requestType {
-	case JoinRoom:
-		logging.Log("Received JoinRoom")
-		joinRoomMessage, err := unpackJoinRoomMessage(msg[1:])
+	case AddPlayer:
+		logging.Log("Received AddPlayer")
+		req, err := unpackAddPlayerRequest(msg[1:])
 		if err != nil {
 			logging.Log(err.Error())
 			return
 		}
 
-		err = handleJoinRoomMessage(joinRoomMessage)
+		err = handleAddPlayerRequest(req)
 		if err != nil {
-			logging.Log("Failed to handle JoinRoom for reason %s:", err.Error())
+			logging.Log("Failed to handle AddPlayer for reason %s:", err.Error())
 		}
-		logging.Log("Successfully handled JoinRoom for player %s", util.FormatIPPort(joinRoomMessage.ip, joinRoomMessage.port))
+		logging.Log("Successfully handled AddPlayer for player %s", util.FormatIPPort(req.ip, req.port))
 
-	case LeaveRoom:
-		leaveRoomMessage, err := unpackLeaveRoomMessage(msg[1:])
+	case RemovePlayer:
+		req, err := unpackRemovePlayerRequest(msg[1:])
 		if err != nil {
-			logging.Log("Unable to unpack LeaveRoomMessage for reason %s", err.Error())
+			logging.Log("Unable to unpack RemovePlayer for reason %s", err.Error())
 			return
 		}
 
-		err = handleLeaveRoomRequest(leaveRoomMessage)
+		err = handleRemovePlayerRequest(req)
 		if err != nil {
-			logging.Log("Failed to handle LeaveRoom for reason %s:", err.Error())
+			logging.Log("Failed to handle RemovePlayer for reason %s:", err.Error())
 		}
-		logging.Log("Successfully handled LeaveRoom for player %s", util.FormatIPPort(leaveRoomMessage.ip, leaveRoomMessage.port))
+		logging.Log("Successfully handled RemovePlayer for player %s", util.FormatIPPort(req.ip, req.port))
 
 	default:
 		logging.Log("Received Unknown Request %d from wfc-server of length %d", requestType, len(msg))
@@ -134,8 +138,8 @@ func SendMessageToWFC(message string) error {
 		return errors.New("Can't send to wfc-server, talker.conn is nil")
 	}
 
-	// wfc-server knows to log mkw-server logs with LogToWFCServer (0xff)
-	data := append([]byte{LogToWFCServer}, message...)
+	// wfc-server knows to log mkw-server logs with Log (0xff)
+	data := append([]byte{Log}, message...)
 
 	err := SendToWFC(data)
 	if err != nil {

@@ -10,8 +10,8 @@ import (
 	"mkw-server/util"
 )
 
-// Id: JoinRoom (0x01)
-type JoinRoomMessage struct {
+// Id: RequestFromWFCServer.AddPlayer (0x01)
+type AddPlayerRequest struct {
 	ip       uint32
 	port     uint16
 	aid      uint8
@@ -19,17 +19,17 @@ type JoinRoomMessage struct {
 	searchId uint64
 }
 
-// Id: JoinRoom (0x01)
-type JoinRoomResp struct {
+// Id: ResponseToWFCServer.JoinAccepted (0x01)
+type JoinAcceptedResponse struct {
 	searchId uint64
 }
 
-func unpackJoinRoomMessage(msg []byte) (*JoinRoomMessage, error) {
+func unpackAddPlayerRequest(msg []byte) (*AddPlayerRequest, error) {
 	if len(msg) != 16 {
-		return nil, fmt.Errorf("Unable to unpack JoinRoomMessage! len(msg) != 16 (%d)", len(msg))
+		return nil, fmt.Errorf("Unable to unpack AddPlayerMessage! len(msg) != 16 (%d)", len(msg))
 	}
 
-	return &JoinRoomMessage{
+	return &AddPlayerRequest{
 		ip:       binary.BigEndian.Uint32(msg[0:4]),
 		port:     binary.BigEndian.Uint16(msg[4:6]),
 		aid:      uint8(msg[6]),
@@ -38,17 +38,17 @@ func unpackJoinRoomMessage(msg []byte) (*JoinRoomMessage, error) {
 	}, nil
 }
 
-func packResponce(searchId uint64) []byte {
+func packJoinAcceptedResponse(searchId uint64) []byte {
 	b := make([]byte, 9)
 
-	b[0] = JoinRoom
+	b[0] = JoinAccepted
 	binary.BigEndian.PutUint64(b[1:], searchId)
 	return b
 }
 
 // addr is the address of the client that wants to join the room
-func handleJoinRoomMessage(newPlayerMsg *JoinRoomMessage) error {
-	if newPlayerMsg == nil {
+func handleAddPlayerRequest(req *AddPlayerRequest) error {
+	if req == nil {
 		return errors.New("newPlayerMsg is nil!")
 	}
 
@@ -56,19 +56,19 @@ func handleJoinRoomMessage(newPlayerMsg *JoinRoomMessage) error {
 		return errors.New("Room isn't initialized, this should not happen at this point")
 	}
 
-	addr := util.CreateUDPAddr(newPlayerMsg.ip, newPlayerMsg.port)
+	addr := util.CreateUDPAddr(req.ip, req.port)
 	if addr == nil {
 		return errors.New("CreateUDPAddr returned nil")
 	}
 
-	err := core.AddPlayerToRoom(addr.String(), newPlayerMsg.aid)
+	err := core.AddPlayerToRoom(addr.String(), req.aid)
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
 
 	logging.Log("Successfully added player to room! Current player count is %d", core.GetCurrentPlayerCount())
 
-	err = SendToWFC(packResponce(newPlayerMsg.searchId))
+	err = SendToWFC(packJoinAcceptedResponse(req.searchId))
 	if err != nil {
 		return fmt.Errorf("Failed to notify WFC of new player: %v", err)
 	}
