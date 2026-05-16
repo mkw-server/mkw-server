@@ -86,10 +86,17 @@ func readLoop() {
 
 func broadcastLoop() {
 	for pkt := range room.broadcast {
+		sender := room.players[pkt.sender.String()]
+
+		// sender can be nil if they disconnect between sending the packet and the broadcast
+		if sender == nil {
+			continue
+		}
+
 		data := pkt.data
 		sendersAid := data[1]
 
-		if sendersAid != room.players[pkt.sender.String()].aid {
+		if sendersAid != sender.aid {
 			continue
 		}
 
