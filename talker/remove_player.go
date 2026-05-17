@@ -16,8 +16,10 @@ type RemovePlayerRequest struct {
 	port uint16
 }
 
+const RemovePlayerRequestLength = 6
+
 func unpackRemovePlayerRequest(msg []byte) (*RemovePlayerRequest, error) {
-	if len(msg) != 6 {
+	if len(msg) != RemovePlayerRequestLength {
 		return nil, fmt.Errorf("RemovePlayerRequest isn't 6 bytes (%d)", len(msg))
 	}
 

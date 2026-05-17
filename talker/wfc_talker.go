@@ -3,6 +3,7 @@ package talker
 import (
 	"encoding/binary"
 	"errors"
+	"io"
 	"net"
 
 	"mkw-server/core"
@@ -20,12 +21,18 @@ type WFCTalker struct {
 var wfcTalker *WFCTalker
 
 type RequestToMKWServer uint8
+
 const (
-	AddPlayer 		= 0x01 // Request from wfc-server to add a player
-	RemovePlayer	= 0x02 // Request from wfc-server to remove a player
+	AddPlayer    = 0x01 // Request from wfc-server to add a player
+	RemovePlayer = 0x02 // Request from wfc-server to remove a player
 )
 
+func (reqType RequestToMKWServer) valid() bool {
+	return reqType == AddPlayer || reqType == RemovePlayer
+}
+
 type ResponseFromMKWServer uint8
+
 const (
 	Ready        = 0x00 // Response to wfc-server informing room is ready for players
 	JoinAccepted = 0x01 // Response to wfc-server confirming a successful AddPlayer
@@ -56,22 +63,6 @@ func NewWFCTalker(port uint16, serverAddress string) error {
 	return nil
 }
 
-func Start() {
-	go func() {
-		buf := make([]byte, 128)
-		for {
-			n, err := wfcTalker.conn.Read(buf)
-			if err != nil {
-				errMsg := "Error reading from WFC server"
-				logging.Log(errMsg)
-				return
-			}
-			data := buf[:n]
-			handleRequest(data)
-		}
-	}()
-}
-
 func sendReady() {
 	buf := make([]byte, 3)
 	buf[0] = Ready
@@ -80,13 +71,38 @@ func sendReady() {
 	SendToWFC(buf)
 }
 
-func handleRequest(msg []byte) {
+func Start() {
+	go func() {
+		header := make([]byte, 1)
+		for {
+			_, err := io.ReadFull(wfcTalker.conn, header)
+			if err != nil {
+				logging.Log("Error reading header from wfc-server %v", err)
+				return
+			}
+			reqType := RequestToMKWServer(header[0])
+			if !reqType.valid() {
+				logging.Log("Invalid request type sent over %d", reqType)
+				continue
+			}
+			handleRequest(reqType)
+		}
+	}()
+}
+
+func handleRequest(reqType RequestToMKWServer) {
 	// First byte indicates request type
-	requestType := msg[0]
-	switch requestType {
+	switch reqType {
 	case AddPlayer:
 		logging.Log("Received AddPlayer")
-		req, err := unpackAddPlayerRequest(msg[1:])
+		msg := make([]byte, AddPlayerRequestLength)
+		_, err := io.ReadFull(wfcTalker.conn, msg)
+		if err != nil {
+			logging.Log("Error reading AddPlayer data from wfc-server: %v", err)
+			return
+		}
+
+		req, err := unpackAddPlayerRequest(msg)
 		if err != nil {
 			logging.Log(err.Error())
 			return
@@ -99,7 +115,15 @@ func handleRequest(msg []byte) {
 		logging.Log("Successfully handled AddPlayer for player %s", util.FormatIPPort(req.ip, req.port))
 
 	case RemovePlayer:
-		req, err := unpackRemovePlayerRequest(msg[1:])
+		logging.Log("Received RemovePlayer")
+		msg := make([]byte, RemovePlayerRequestLength)
+		_, err := io.ReadFull(wfcTalker.conn, msg)
+		if err != nil {
+			logging.Log("Error reading RemovePlayer data from wfc-server: %v", err)
+			return
+		}
+
+		req, err := unpackRemovePlayerRequest(msg)
 		if err != nil {
 			logging.Log("Unable to unpack RemovePlayer for reason %s", err.Error())
 			return
@@ -112,7 +136,7 @@ func handleRequest(msg []byte) {
 		logging.Log("Successfully handled RemovePlayer for player %s", util.FormatIPPort(req.ip, req.port))
 
 	default:
-		logging.Log("Received Unknown Request %d from wfc-server of length %d", requestType, len(msg))
+		logging.Log("Received Unknown Request %d from wfc-server", reqType)
 	}
 }
 

@@ -19,13 +19,15 @@ type AddPlayerRequest struct {
 	searchId uint64
 }
 
+const AddPlayerRequestLength = 16
+
 // Id: ResponseToWFCServer.JoinAccepted (0x01)
 type JoinAcceptedResponse struct {
 	searchId uint64
 }
 
 func unpackAddPlayerRequest(msg []byte) (*AddPlayerRequest, error) {
-	if len(msg) != 16 {
+	if len(msg) != AddPlayerRequestLength {
 		return nil, fmt.Errorf("Unable to unpack AddPlayerMessage! len(msg) != 16 (%d)", len(msg))
 	}
 
