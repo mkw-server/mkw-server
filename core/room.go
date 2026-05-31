@@ -143,14 +143,14 @@ func AddPlayerToRoom(playerAddr string, aid byte) error {
 	}
 
 	room.aidBitmap = util.SetAid(room.aidBitmap, aid)
-	player, err := NewPlayer(playerAddr, room, aid)
+	p, err := NewPlayer(playerAddr, room, aid)
 	if err != nil {
 		return fmt.Errorf("Failed to create player %s due to", playerAddr)
 	}
 
-	room.players[playerAddr] = player
+	room.players[playerAddr] = p
 
-	logging.Log("Player %s added to room", playerAddr)
+	logging.Log("Successfully added player %s (aid: %d). Aid count is %d", playerAddr, p.aid, GetCurrentPlayerCount())
 	return nil
 }
 
@@ -162,6 +162,8 @@ func RemovePlayerFromRoom(playerAddr string) error {
 	}
 
 	room.aidBitmap = util.ClearAid(room.aidBitmap, p.aid)
+
+	logging.Log("Successfully removed player %s (aid: %d). Aid count is %d", playerAddr, p.aid, GetCurrentPlayerCount())
 
 	delete(room.players, playerAddr)
 	return nil

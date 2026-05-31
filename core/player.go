@@ -3,8 +3,6 @@ package core
 import (
 	"fmt"
 	"net"
-
-	"mkw-server/logging"
 )
 
 type Player struct {
@@ -34,7 +32,6 @@ func NewPlayer(addr string, room *Room, aid byte) (*Player, error) {
 		aid:       aid,
 	}
 
-	logging.Log("New player added. Aid: %d", aid)
 	return player, nil
 }
 
