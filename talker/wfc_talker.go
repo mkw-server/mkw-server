@@ -94,7 +94,6 @@ func handleRequest(reqType RequestToMKWServer) {
 	// First byte indicates request type
 	switch reqType {
 	case AddPlayer:
-		logging.Log("Received AddPlayer")
 		msg := make([]byte, AddPlayerRequestLength)
 		_, err := io.ReadFull(wfcTalker.conn, msg)
 		if err != nil {
@@ -115,7 +114,6 @@ func handleRequest(reqType RequestToMKWServer) {
 		logging.Log("Successfully handled AddPlayer for player %s", util.FormatIPPort(req.ip, req.port))
 
 	case RemovePlayer:
-		logging.Log("Received RemovePlayer")
 		msg := make([]byte, RemovePlayerRequestLength)
 		_, err := io.ReadFull(wfcTalker.conn, msg)
 		if err != nil {
@@ -133,7 +131,6 @@ func handleRequest(reqType RequestToMKWServer) {
 		if err != nil {
 			logging.Log("Failed to handle RemovePlayer for reason %s:", err.Error())
 		}
-		logging.Log("Successfully handled RemovePlayer for player %s", util.FormatIPPort(req.ip, req.port))
 
 	default:
 		logging.Log("Received Unknown Request %d from wfc-server", reqType)

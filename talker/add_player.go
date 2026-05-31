@@ -51,8 +51,10 @@ func packJoinAcceptedResponse(searchId uint64) []byte {
 // addr is the address of the client that wants to join the room
 func handleAddPlayerRequest(req *AddPlayerRequest) error {
 	if req == nil {
-		return errors.New("newPlayerMsg is nil!")
+		return errors.New("AddPlayerRequest is nil!")
 	}
+
+	logging.Log("Handling AddPlayer. Attempting to add player %s", util.FormatIPPort(req.ip, req.port))
 
 	if !core.RoomInitialized() {
 		return errors.New("Room isn't initialized, this should not happen at this point")
@@ -68,12 +70,11 @@ func handleAddPlayerRequest(req *AddPlayerRequest) error {
 		return fmt.Errorf(err.Error())
 	}
 
-	logging.Log("Successfully added player to room! Current player count is %d", core.GetCurrentPlayerCount())
+	logging.Log("Sending wfc-server PlayerAdded")
 
 	err = SendToWFC(packJoinAcceptedResponse(req.searchId))
 	if err != nil {
 		return fmt.Errorf("Failed to notify WFC of new player: %v", err)
 	}
-	logging.Log("Notified WFC of new player from Join Friend Request!")
 	return nil
 }

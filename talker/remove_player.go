@@ -31,7 +31,7 @@ func unpackRemovePlayerRequest(msg []byte) (*RemovePlayerRequest, error) {
 
 func handleRemovePlayerRequest(req *RemovePlayerRequest) error {
 	if req == nil {
-		return errors.New("LeaveMessage is nil")
+		return errors.New("RemovePlayerRequest is nil")
 	}
 
 	logging.Log("Handling RemovePlayer. Attempting to remove player %s", util.FormatIPPort(req.ip, req.port))
