@@ -18,6 +18,11 @@ type Player struct {
 	//   - maybe this could be a bottleneck
 	// - One goroutine for looping over the broadcast channel, which adds the packet to each player's send queue
 	// - One goroutine per player to write packets from their send queue to their address
+
+	// Flag indicating player is ready to start the countdown.
+	// Set when player sends over a ready message.
+	// Reset when mkw-server can send a start (when all players are ready)
+	readyForCountdown bool
 }
 
 func NewPlayer(addr string, room *Room, aid byte) (*Player, error) {

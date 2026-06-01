@@ -24,6 +24,11 @@ type Room struct {
 	broadcast chan Packet // channel for broadcasting packets to all players
 
 	aidBitmap uint32
+
+	// Flag to indicate the countdown can start. Set when all players have sent a ready packet
+	// and reset when all players started the countdown. Updated when a player's readyForCountdown
+	// changes
+	countdownState bool
 }
 
 var room *Room
@@ -74,13 +79,39 @@ func readLoop() {
 			return
 		}
 
+		p := room.players[addr.String()]
+		if p == nil {
+			logging.Log("Non-player sent a packet. Address: %v", addr)
+			continue
+		}
+
 		pkt := Packet{
 			sender:       addr,
+			player:       p,
 			data:         append([]byte{}, buf[:n]...),
 			receivedTime: time.Now(),
 		}
 
-		room.broadcast <- pkt
+		handlePacket(&pkt)
+	}
+}
+
+func handlePacket(pkt *Packet) {
+	data := (*pkt).data
+	p := pkt.player
+
+	// Check if the player is ready and they were not before.
+	if !p.readyForCountdown && isReadyPacket(data) {
+		handlePlayerReady(p)
+	}
+
+	// Check if the player started the countdown if we didn't already know they had.
+	if p.readyForCountdown && hasCountdownStarted(data) {
+		// Reset the player's ready. Needed for following races.
+		handlePlayerStartedCountdown(p)
+	}
+	if data[0] == RacePacketMagic {
+		room.broadcast <- *pkt
 	}
 }
 
