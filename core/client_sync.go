@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/binary"
+	"time"
 
 	"mkw-server/logging"
 )
@@ -9,6 +10,8 @@ import (
 const readyPacket = "RE"
 const startPacket = "ST"
 const readyAckPacket = "RA"
+const pingPacket = "PI"
+const pongPacket = "PO"
 
 func isReadyPacket(data []byte) bool {
 	return string(data) == readyPacket
@@ -44,7 +47,6 @@ func handlePlayerReady(p *Player) {
 
 func sendReadyAck(p *Player) {
 	room.conn.WriteTo([]byte(readyAckPacket), p.addr)
-	logging.Log("Sent ready ACK to aid %d", p.aid)
 }
 
 func handlePlayerStartedCountdown(p *Player) {
@@ -74,23 +76,83 @@ func tryUpdateRoomCountdownState() {
 		beginSendStart()
 	} else {
 		logging.Log("All players have started the countdown locally. Room's countdown state reset")
+
+		// Latency is calculated each race, reset all players latencies at countdown
+		// to prepare for next race.
+		resetAllPlayersLatency()
 	}
 }
 
 func beginSendStart() {
-	logging.Log("All players are ready, can begin sending starts")
-
-	// TODO: Calculate the max latency of all players
+	maxLatency := getMaxLatency()
 	for _, p := range room.players {
+
 		// Start a goroutine for each player to send with a delay
 		go func(player *Player) {
-			// TODO: Calculate maxLatency - p.latency, the amount of time delay before sending
+			delay := maxLatency - p.latency
+			logging.Log("Sending aid %d Start after %v time", player.aid, delay)
+			time.Sleep(delay)
+
 			_, err := room.conn.WriteTo([]byte(startPacket), player.addr)
 			if err != nil {
 				logging.Log("Error sending Start to aid %d: %v", player.aid, err)
 				return
 			}
-			logging.Log("Sent Start to aid %d", player.aid)
+
 		}(p)
 	}
+}
+
+// TODO: Rewrite this when Race packet parsing is implemented
+func containsSelectRecord(data []byte) bool {
+	// Packet must be at least 0x48 bytes to contain a Select record (0x10 + 0x38)
+	if len(data) < 0x48 {
+		return false
+	}
+
+	// Check that the size of the select record in the header is the expected 0x38.
+	return data[0xb] == 0x38
+}
+
+func sendPing(p *Player) {
+	p.lastPingSent = time.Now()
+	room.conn.WriteTo([]byte(pingPacket), p.addr)
+}
+
+func isPongPacket(data []byte) bool {
+	return string(data) == pongPacket
+}
+
+func handlePongPacket(p *Player) {
+	p.latencySum += time.Since(p.lastPingSent)
+	p.latencyCount++
+	p.latency = p.latencySum / time.Duration(p.latencyCount)
+}
+
+func resetAllPlayersLatency() {
+	for _, p := range room.players {
+		if p == nil {
+			continue
+		}
+		logging.Log("Aid %d's average latency: %v (samples: %d)", p.aid, p.latency, p.latencyCount)
+
+		p.latencyCount = 0
+		p.latencySum = 0
+		p.latency = 0
+		p.lastPingSent = time.Time{}
+	}
+}
+
+func getMaxLatency() time.Duration {
+	var maxLatency time.Duration
+	for _, p := range room.players {
+		if p == nil {
+			continue
+		}
+
+		if maxLatency < p.latency {
+			maxLatency = p.latency
+		}
+	}
+	return maxLatency
 }

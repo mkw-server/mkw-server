@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"net"
+	"time"
 )
 
 type Player struct {
@@ -23,6 +24,11 @@ type Player struct {
 	// Set when player sends over a ready message.
 	// Reset when mkw-server can send a start (when all players are ready)
 	readyForCountdown bool
+
+	lastPingSent time.Time
+	latency      time.Duration
+	latencySum   time.Duration
+	latencyCount int
 }
 
 func NewPlayer(addr string, room *Room, aid byte) (*Player, error) {

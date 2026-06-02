@@ -110,6 +110,17 @@ func handlePacket(pkt *Packet) {
 		// Reset the player's ready. Needed for following races.
 		handlePlayerStartedCountdown(p)
 	}
+
+	if containsSelectRecord(data) {
+		// Select records only appear during the voting screen. This is a good time to calculate
+		// latency for the upcoming race.
+		sendPing(p)
+	}
+
+	if isPongPacket(data) {
+		handlePongPacket(p)
+	}
+
 	if data[0] == RacePacketMagic {
 		room.broadcast <- *pkt
 	}
