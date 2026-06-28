@@ -166,14 +166,28 @@ func sendPingTimePacket(p *Player) {
 	subMs := (p.latency.Nanoseconds() % 1_000_000)
 	subMsDigits := subMs / 10_000
 
+	msDigits := [3]byte{
+		byte((ms / 100) % 10),
+		byte((ms / 10) % 10),
+		byte(ms % 10),
+	}
+	nsDigits := [2]byte{
+		byte(subMsDigits / 10),
+		byte(subMsDigits % 10),
+	}
+
+	// Replace leading zeros with 11. The HUD hides any digit with a value greater than 10.
+	for i := 0; i < len(msDigits)-1; i++ {
+		if msDigits[i] == 0 {
+			msDigits[i] = 11
+		} else {
+			break
+		}
+	}
+
 	packet := []byte(pingTimePacket)
-	packet = append(packet,
-		byte((ms/100)%10),
-		byte((ms/10)%10),
-		byte(ms%10),
-		byte(subMsDigits/10),
-		byte(subMsDigits%10),
-	)
+	packet = append(packet, msDigits[:]...)
+	packet = append(packet, nsDigits[:]...)
 
 	_, err := room.conn.WriteTo(packet, p.addr)
 	if err != nil {
