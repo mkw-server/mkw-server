@@ -62,6 +62,12 @@ func tryUpdateRoomCountdownState() {
 			continue
 		}
 
+		// Hack: Ignore non-racers when updating countdownState. This fixes a specific bug that
+		// can cause the room to never start if someone joined (a spectator) before the countdown.
+		if !p.lastSentRaceData {
+			continue
+		}
+
 		// If a single player has the same ready state as the room, the room's countdown state
 		// can't be updated. Return early.
 		if p.readyForCountdown == room.countdownState {
@@ -75,7 +81,6 @@ func tryUpdateRoomCountdownState() {
 	if room.countdownState {
 		logging.Log("All players sent ready and room's countdown state updated. Room's countdown should start")
 		beginSendStart()
-		startRacePing()
 	} else {
 		logging.Log("All players have started the countdown locally. Room's countdown state reset")
 
@@ -105,17 +110,6 @@ func beginSendStart() {
 	}
 }
 
-// TODO: Rewrite this when Race packet parsing is implemented
-func containsSelectRecord(data []byte) bool {
-	// Packet must be at least 0x48 bytes to contain a Select record (0x10 + 0x38)
-	if len(data) < 0x48 {
-		return false
-	}
-
-	// Check that the size of the select record in the header is the expected 0x38.
-	return data[0xb] == 0x38
-}
-
 func sendPing(p *Player) {
 	p.lastPingSent = time.Now()
 	room.conn.WriteTo([]byte(pingPacket), p.addr)
@@ -138,7 +132,6 @@ func resetAllPlayersLatency() {
 			continue
 		}
 		logging.Log("Aid %d's average latency: %v (samples: %d)", p.aid, p.latency, p.latencyCount)
-		sendPingTimePacket(p)
 
 		p.latencyCount = 0
 		p.latencySum = 0

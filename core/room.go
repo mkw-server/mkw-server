@@ -29,8 +29,6 @@ type Room struct {
 	// and reset when all players started the countdown. Updated when a player's readyForCountdown
 	// changes
 	countdownState bool
-
-	sendPing chan struct{}
 }
 
 var room *Room
@@ -70,6 +68,7 @@ func StartRoom() {
 
 	go readLoop()
 	go broadcastLoop()
+	go pingLoop()
 }
 
 func readLoop() {
@@ -113,12 +112,6 @@ func handlePacket(pkt *Packet) {
 		handlePlayerStartedCountdown(p)
 	}
 
-	if containsSelectRecord(data) {
-		// Select records only appear during the voting screen. This is a good time to calculate
-		// latency for the upcoming race.
-		sendPing(p)
-	}
-
 	if isPongPacket(data) {
 		handlePongPacket(p)
 	}
@@ -144,6 +137,8 @@ func broadcastLoop() {
 			continue
 		}
 
+		sender.lastSentRaceData = containsRaceData(data)
+
 		aidBitmap := binary.BigEndian.Uint16(data[2:4])
 		receivingAids := util.GetSendToAids(aidBitmap)
 
@@ -164,6 +159,19 @@ func broadcastLoop() {
 				logging.Log("Error writitng to aid %d", p.aid)
 				continue
 			}
+		}
+	}
+}
+
+func pingLoop() {
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+	for range ticker.C {
+		for _, p := range room.players {
+			if p == nil {
+				continue
+			}
+			sendPing(p)
 		}
 	}
 }
@@ -239,25 +247,4 @@ func CloseRoom() {
 
 func RoomInitialized() bool {
 	return room != nil
-}
-
-func startRacePing() {
-	room.sendPing = make(chan struct{})
-	go func() {
-		ticker := time.NewTicker(200 * time.Millisecond)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				for _, p := range room.players {
-					if p == nil {
-						continue
-					}
-					sendPing(p)
-				}
-			case <-room.sendPing:
-				return
-			}
-		}
-	}()
 }

@@ -13,3 +13,8 @@ type Packet struct {
 	data         []byte
 	receivedTime time.Time
 }
+
+// TODO: Rewrite when Race packet parsing is implemented.
+func containsRaceData(data []byte) bool {
+	return data[0xc] != 0
+}

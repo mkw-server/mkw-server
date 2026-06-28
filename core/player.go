@@ -29,6 +29,8 @@ type Player struct {
 	latency      time.Duration
 	latencySum   time.Duration
 	latencyCount int
+
+	lastSentRaceData bool
 }
 
 func NewPlayer(addr string, room *Room, aid byte) (*Player, error) {
