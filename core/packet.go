@@ -16,5 +16,6 @@ type Packet struct {
 
 // TODO: Rewrite when Race packet parsing is implemented.
 func containsRaceData(data []byte) bool {
+	// Offset 0xc is the RaceData record size field in the Header record.
 	return data[0xc] != 0
 }

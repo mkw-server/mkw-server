@@ -20,17 +20,19 @@ type Player struct {
 	// - One goroutine for looping over the broadcast channel, which adds the packet to each player's send queue
 	// - One goroutine per player to write packets from their send queue to their address
 
-	// Flag indicating player is ready to start the countdown.
-	// Set when player sends over a ready message.
-	// Reset when mkw-server can send a start (when all players are ready)
+	// true if the player is ready to start the countdown. Resets after the start of the countdown.
 	readyForCountdown bool
 
+	// These latency fields are used to support synchronizing the countdown and the ping control.
 	lastPingSent time.Time
 	latency      time.Duration
 	latencySum   time.Duration
 	latencyCount int
 
-	lastSentRaceData bool
+	// Set true if the last sent Race packet contains a RaceData record. See the comment in
+	// tryUpdateRoomCountdownState(). Not a perfect way to distinguish racers from non-racers,
+	// but it works for the purposes of fixing the bug described in tryUpdateRoomCountdownState().
+	isRacer bool
 }
 
 func NewPlayer(addr string, room *Room, aid byte) (*Player, error) {

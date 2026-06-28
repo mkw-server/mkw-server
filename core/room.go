@@ -25,9 +25,8 @@ type Room struct {
 
 	aidBitmap uint32
 
-	// Flag to indicate the countdown can start. Set when all players have sent a ready packet
-	// and reset when all players started the countdown. Updated when a player's readyForCountdown
-	// changes
+	// Indicates if the countdown can start. Set when all players are ready and reset when
+	// all players started the countdown.
 	countdownState bool
 }
 
@@ -98,17 +97,15 @@ func readLoop() {
 }
 
 func handlePacket(pkt *Packet) {
-	data := (*pkt).data
+	data := pkt.data
 	p := pkt.player
 
-	// Check if the player is ready and they were not before.
 	if !p.readyForCountdown && isReadyPacket(data) {
 		handlePlayerReady(p)
 	}
 
-	// Check if the player started the countdown if we didn't already know they had.
 	if p.readyForCountdown && hasCountdownStarted(data) {
-		// Reset the player's ready. Needed for following races.
+		// Reset the player's ready.
 		handlePlayerStartedCountdown(p)
 	}
 
@@ -137,7 +134,7 @@ func broadcastLoop() {
 			continue
 		}
 
-		sender.lastSentRaceData = containsRaceData(data)
+		sender.isRacer = containsRaceData(data)
 
 		aidBitmap := binary.BigEndian.Uint16(data[2:4])
 		receivingAids := util.GetSendToAids(aidBitmap)
@@ -163,6 +160,7 @@ func broadcastLoop() {
 	}
 }
 
+// Broadcasts a ping to everyone every 1/2 second.
 func pingLoop() {
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()

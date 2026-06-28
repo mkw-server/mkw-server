@@ -64,7 +64,7 @@ func tryUpdateRoomCountdownState() {
 
 		// Hack: Ignore non-racers when updating countdownState. This fixes a specific bug that
 		// can cause the room to never start if someone joined (a spectator) before the countdown.
-		if !p.lastSentRaceData {
+		if !p.isRacer {
 			continue
 		}
 
@@ -84,8 +84,7 @@ func tryUpdateRoomCountdownState() {
 	} else {
 		logging.Log("All players have started the countdown locally. Room's countdown state reset")
 
-		// Latency is calculated each race, reset all players latencies at countdown
-		// to prepare for next race.
+		// Reset all players latencies at countdown to prepare for next race.
 		resetAllPlayersLatency()
 	}
 }
@@ -96,7 +95,7 @@ func beginSendStart() {
 
 		// Start a goroutine for each player to send with a delay
 		go func(player *Player) {
-			delay := maxLatency - p.latency
+			delay := maxLatency - player.latency
 			logging.Log("Sending aid %d Start after %v time", player.aid, delay)
 			time.Sleep(delay)
 
