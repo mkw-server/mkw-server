@@ -12,6 +12,7 @@ const startPacket = "ST"
 const readyAckPacket = "RA"
 const pingPacket = "PI"
 const pongPacket = "PO"
+const pingTimePacket = "PT"
 
 func isReadyPacket(data []byte) bool {
 	return string(data) == readyPacket
@@ -74,6 +75,7 @@ func tryUpdateRoomCountdownState() {
 	if room.countdownState {
 		logging.Log("All players sent ready and room's countdown state updated. Room's countdown should start")
 		beginSendStart()
+		startRacePing()
 	} else {
 		logging.Log("All players have started the countdown locally. Room's countdown state reset")
 
@@ -127,6 +129,7 @@ func handlePongPacket(p *Player) {
 	p.latencySum += time.Since(p.lastPingSent)
 	p.latencyCount++
 	p.latency = p.latencySum / time.Duration(p.latencyCount)
+	sendPingTimePacket(p)
 }
 
 func resetAllPlayersLatency() {
@@ -135,6 +138,7 @@ func resetAllPlayersLatency() {
 			continue
 		}
 		logging.Log("Aid %d's average latency: %v (samples: %d)", p.aid, p.latency, p.latencyCount)
+		sendPingTimePacket(p)
 
 		p.latencyCount = 0
 		p.latencySum = 0
@@ -155,4 +159,24 @@ func getMaxLatency() time.Duration {
 		}
 	}
 	return maxLatency
+}
+
+func sendPingTimePacket(p *Player) {
+	ms := p.latency.Milliseconds()
+	subMs := (p.latency.Nanoseconds() % 1_000_000)
+	subMsDigits := subMs / 10_000
+
+	packet := []byte(pingTimePacket)
+	packet = append(packet,
+		byte((ms/100)%10),
+		byte((ms/10)%10),
+		byte(ms%10),
+		byte(subMsDigits/10),
+		byte(subMsDigits%10),
+	)
+
+	_, err := room.conn.WriteTo(packet, p.addr)
+	if err != nil {
+		logging.Log("Error sending PingTime to aid %d: %v", p.aid, err)
+	}
 }

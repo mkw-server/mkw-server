@@ -29,6 +29,8 @@ type Room struct {
 	// and reset when all players started the countdown. Updated when a player's readyForCountdown
 	// changes
 	countdownState bool
+
+	sendPing chan struct{}
 }
 
 var room *Room
@@ -237,4 +239,25 @@ func CloseRoom() {
 
 func RoomInitialized() bool {
 	return room != nil
+}
+
+func startRacePing() {
+	room.sendPing = make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(200 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				for _, p := range room.players {
+					if p == nil {
+						continue
+					}
+					sendPing(p)
+				}
+			case <-room.sendPing:
+				return
+			}
+		}
+	}()
 }
