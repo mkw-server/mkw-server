@@ -132,6 +132,14 @@ func isPongPacket(data []byte) bool {
 }
 
 func handlePongPacket(p *Player) {
+	elapsed := time.Since(p.lastPingSent)
+
+	// Sort of hacky but should help gaurd giant elapsed times
+	if elapsed > 3 * time.Second {
+		logging.Log("Aid %d sent a pong with unacceptable elapsed time (%v)", p.aid, elapsed)
+		return
+	}
+
 	p.latencySum += time.Since(p.lastPingSent)
 	p.latencyCount++
 	p.latency = p.latencySum / time.Duration(p.latencyCount)
@@ -148,7 +156,6 @@ func resetAllPlayersLatency() {
 		p.latencyCount = 0
 		p.latencySum = 0
 		p.latency = 0
-		p.lastPingSent = time.Time{}
 	}
 }
 
