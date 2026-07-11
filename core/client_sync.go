@@ -102,6 +102,9 @@ func tryUpdateRoomCountdownState() {
 func beginSendStart() {
 	maxLatency := getMaxLatency()
 	for _, p := range room.players {
+		if p == nil || !p.isRacer {
+			continue
+		}
 
 		// Start a goroutine for each player to send with a delay
 		go func(player *Player) {
@@ -137,7 +140,7 @@ func handlePongPacket(p *Player) {
 
 func resetAllPlayersLatency() {
 	for _, p := range room.players {
-		if p == nil {
+		if p == nil || !p.isRacer {
 			continue
 		}
 		logging.Log("Aid %d's average latency: %v (samples: %d)", p.aid, p.latency, p.latencyCount)
@@ -152,7 +155,7 @@ func resetAllPlayersLatency() {
 func getMaxLatency() time.Duration {
 	var maxLatency time.Duration
 	for _, p := range room.players {
-		if p == nil {
+		if p == nil || !p.isRacer {
 			continue
 		}
 
