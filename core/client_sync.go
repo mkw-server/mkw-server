@@ -37,6 +37,7 @@ func hasCountdownStarted(data []byte) bool {
 }
 
 func handlePlayerReady(p *Player) {
+	logging.Log("Aid %d sent a ready", p.aid)
 	p.readyForCountdown = true
 
 	// Send them an ack. Player will stop sending ready packets
@@ -51,12 +52,17 @@ func sendReadyAck(p *Player) {
 }
 
 func handlePlayerStartedCountdown(p *Player) {
+	logging.Log("Aid %d started the countdown", p.aid)
 	p.readyForCountdown = false
 
 	tryUpdateRoomCountdownState()
 }
 
 func tryUpdateRoomCountdownState() {
+	racerCount := 0
+	unanimousState := false
+	allAgree := true
+
 	for addr, p := range room.players {
 		if addr == "" || p == nil {
 			continue
@@ -68,22 +74,26 @@ func tryUpdateRoomCountdownState() {
 			continue
 		}
 
-		// If a single player has the same ready state as the room, the room's countdown state
-		// can't be updated. Return early.
-		if p.readyForCountdown == room.countdownState {
-			return
+		if racerCount == 0 {
+			unanimousState = p.readyForCountdown
+		} else if p.readyForCountdown != unanimousState {
+			allAgree = false
+			break
 		}
+		racerCount++
 	}
 
-	// Player are unanimous in a differing countdown state than the room; flip the room's.
-	room.countdownState = !room.countdownState
+	if racerCount == 0 || !allAgree || unanimousState == room.countdownState {
+		return
+	}
+
+	room.countdownState = unanimousState
 
 	if room.countdownState {
 		logging.Log("All players sent ready and room's countdown state updated. Room's countdown should start")
 		beginSendStart()
 	} else {
 		logging.Log("All players have started the countdown locally. Room's countdown state reset")
-
 		// Reset all players latencies at countdown to prepare for next race.
 		resetAllPlayersLatency()
 	}

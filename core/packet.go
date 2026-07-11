@@ -15,7 +15,8 @@ type Packet struct {
 }
 
 // TODO: Rewrite when Race packet parsing is implemented.
-func containsRaceData(data []byte) bool {
-	// Offset 0xc is the RaceData record size field in the Header record.
-	return data[0xc] != 0
+func containsSelect(data []byte) bool {
+	//Offset 0xb is the Select Record record size field in the Header record.
+	// Select record size is always 0x38.
+	return data[0xb] == 0x38
 }

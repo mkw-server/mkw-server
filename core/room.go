@@ -134,7 +134,10 @@ func broadcastLoop() {
 			continue
 		}
 
-		sender.isRacer = containsRaceData(data)
+		if !sender.isRacer && containsSelect(data) {
+			logging.Log("Aid %d sent select!", sender.aid)
+			sender.isRacer = true
+		}
 
 		aidBitmap := binary.BigEndian.Uint16(data[2:4])
 		receivingAids := util.GetSendToAids(aidBitmap)
