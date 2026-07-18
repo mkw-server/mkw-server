@@ -163,7 +163,7 @@ func broadcastLoop() {
 	}
 }
 
-// Broadcasts a ping to everyone every 1/2 second.
+// Sends a ping to all players every 1/2 seconds.
 func pingLoop() {
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()

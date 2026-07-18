@@ -20,18 +20,15 @@ type Player struct {
 	// - One goroutine for looping over the broadcast channel, which adds the packet to each player's send queue
 	// - One goroutine per player to write packets from their send queue to their address
 
-	// true if the player is ready to start the countdown. Resets after the start of the countdown.
 	readyForCountdown bool
 
-	// These latency fields are used to support synchronizing the countdown and the ping control.
+	// Used to support countdown logic and the player's ping control.
 	lastPingSent time.Time
 	latency      time.Duration
 	latencySum   time.Duration
 	latencyCount int
 
-	// Set true if the last sent Race packet contains a RaceData record. See the comment in
-	// tryUpdateRoomCountdownState(). Not a perfect way to distinguish racers from non-racers,
-	// but it works for the purposes of fixing the bug described in tryUpdateRoomCountdownState().
+	// Distinguishes racers from non-racers. This is important for the countdown.
 	isRacer bool
 }
 
