@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"net"
+	"time"
 )
 
 type Player struct {
@@ -18,6 +19,17 @@ type Player struct {
 	//   - maybe this could be a bottleneck
 	// - One goroutine for looping over the broadcast channel, which adds the packet to each player's send queue
 	// - One goroutine per player to write packets from their send queue to their address
+
+	readyForCountdown bool
+
+	// Used to support countdown logic and the player's ping control.
+	lastPingSent time.Time
+	latency      time.Duration
+	latencySum   time.Duration
+	latencyCount int
+
+	// Distinguishes racers from non-racers. This is important for the countdown.
+	isRacer bool
 }
 
 func NewPlayer(addr string, room *Room, aid byte) (*Player, error) {

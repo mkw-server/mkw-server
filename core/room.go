@@ -24,6 +24,10 @@ type Room struct {
 	broadcast chan Packet // channel for broadcasting packets to all players
 
 	aidBitmap uint32
+
+	// Indicates if the countdown can start. Set when all players are ready and reset when
+	// all players started the countdown.
+	countdownState bool
 }
 
 var room *Room
@@ -63,6 +67,7 @@ func StartRoom() {
 
 	go readLoop()
 	go broadcastLoop()
+	go pingLoop()
 }
 
 func readLoop() {
@@ -74,13 +79,42 @@ func readLoop() {
 			return
 		}
 
+		p := room.players[addr.String()]
+		if p == nil {
+			logging.Log("Non-player sent a packet. Address: %v", addr)
+			continue
+		}
+
 		pkt := Packet{
 			sender:       addr,
+			player:       p,
 			data:         append([]byte{}, buf[:n]...),
 			receivedTime: time.Now(),
 		}
 
-		room.broadcast <- pkt
+		handlePacket(&pkt)
+	}
+}
+
+func handlePacket(pkt *Packet) {
+	data := pkt.data
+	p := pkt.player
+
+	if !p.readyForCountdown && isReadyPacket(data) {
+		handlePlayerReady(p)
+	}
+
+	if p.readyForCountdown && hasCountdownStarted(data) {
+		// Reset the player's ready.
+		handlePlayerStartedCountdown(p)
+	}
+
+	if isPongPacket(data) {
+		handlePongPacket(p)
+	}
+
+	if data[0] == RacePacketMagic {
+		room.broadcast <- *pkt
 	}
 }
 
@@ -98,6 +132,11 @@ func broadcastLoop() {
 
 		if sendersAid != sender.aid {
 			continue
+		}
+
+		if !sender.isRacer && containsSelect(data) {
+			logging.Log("Aid %d sent select!", sender.aid)
+			sender.isRacer = true
 		}
 
 		aidBitmap := binary.BigEndian.Uint16(data[2:4])
@@ -120,6 +159,20 @@ func broadcastLoop() {
 				logging.Log("Error writitng to aid %d", p.aid)
 				continue
 			}
+		}
+	}
+}
+
+// Sends a ping to all players every 1/2 seconds.
+func pingLoop() {
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+	for range ticker.C {
+		for _, p := range room.players {
+			if p == nil {
+				continue
+			}
+			sendPing(p)
 		}
 	}
 }
