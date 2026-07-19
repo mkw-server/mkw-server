@@ -102,15 +102,17 @@ func handlePacket(pkt *Packet) {
 
 	if !p.readyForCountdown && isReadyPacket(data) {
 		handlePlayerReady(p)
+		return
 	}
 
 	if p.readyForCountdown && hasCountdownStarted(data) {
-		// Reset the player's ready.
 		handlePlayerStartedCountdown(p)
+		return
 	}
 
 	if isPongPacket(data) {
 		handlePongPacket(p)
+		return
 	}
 
 	if data[0] == RacePacketMagic {
