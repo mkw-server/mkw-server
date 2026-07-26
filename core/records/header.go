@@ -10,8 +10,8 @@ import (
 const HeaderLen = 0x10
 
 // TODO: Move non-header record lenghts to their respective source files.
-const RH1Len = 0x28
-const RH2Len = 0x28
+const RaceInfoLen = 0x28
+const RaceModeLen = 0x28
 const RoomLen = 0x4
 const SelectLen = 0x38
 const RaceDataLen = 0x40
@@ -24,8 +24,8 @@ type Header struct {
 	magic         uint32
 	crc32         uint32
 	headerLen     byte
-	rh1Len        byte
-	rh2Len        byte
+	raceInfoLen   byte
+	raceModeLen   byte
 	roomSelectLen byte
 	raceDataLen   byte
 	userLen       byte
@@ -57,14 +57,14 @@ func ParseHeader(data []byte) (*Header, error) {
 	}
 
 	// Header is the only record that *must* exist. All other records may or may not exist.
-	rh1Len := data[9]
-	if rh1Len != 0 && rh1Len != RH1Len {
-		return nil, fmt.Errorf("rh1Len (%d) != (0, %d)", rh1Len, RH1Len)
+	raceInfoLen := data[9]
+	if raceInfoLen != 0 && raceInfoLen != RaceInfoLen {
+		return nil, fmt.Errorf("raceInfoLen (%d) != (0, %d)", raceInfoLen, RaceInfoLen)
 	}
 
-	rh2Len := data[10]
-	if rh2Len != 0 && rh2Len != RH2Len {
-		return nil, fmt.Errorf("rh2Len (%d) != (0, %d)", rh2Len, RH2Len)
+	raceModeLen := data[10]
+	if raceModeLen != 0 && raceModeLen != RaceModeLen {
+		return nil, fmt.Errorf("raceModeLen (%d) != (0, %d)", raceModeLen, RaceModeLen)
 	}
 
 	roomSelectLen := data[11]
@@ -100,8 +100,8 @@ func ParseHeader(data []byte) (*Header, error) {
 		magic:         binary.BigEndian.Uint32(data[:4]),
 		crc32:         calcCRC,
 		headerLen:     headerLen,
-		rh1Len:        rh1Len,
-		rh2Len:        rh2Len,
+		raceInfoLen:   raceInfoLen,
+		raceModeLen:   raceModeLen,
 		roomSelectLen: roomSelectLen,
 		raceDataLen:   raceDataLen,
 		userLen:       userLen,
