@@ -7,7 +7,8 @@ import (
 )
 
 type RacePacket struct {
-	Header *records.Header
+	Header   *records.Header
+	RaceInfo *records.RaceInfo
 	// TODO: Add other records.
 }
 
@@ -25,6 +26,17 @@ func parseRacePacket(data []byte) (*RacePacket, error) {
 
 	racePacket := &RacePacket{
 		Header: header,
+	}
+
+	// Keep track of current packet offset and update it after a record has been parsed.
+	currentOffset := records.HeaderLen
+	if header.RaceInfoLen() == records.RaceInfoLen {
+		raceInfo, err := records.ParseRaceInfo(data[records.HeaderLen : currentOffset+records.RaceInfoLen])
+		if err != nil {
+			return nil, fmt.Errorf("RaceInfo parsing falure: %w", err)
+		}
+		racePacket.RaceInfo = raceInfo
+		currentOffset += records.RaceInfoLen
 	}
 
 	return racePacket, nil
