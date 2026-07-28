@@ -10,7 +10,6 @@ import (
 const HeaderLen = 0x10
 
 // TODO: Move non-header record lenghts to their respective source files.
-const RaceInfoLen = 0x28
 const RaceModeLen = 0x28
 const RoomLen = 0x4
 const SelectLen = 0x38
@@ -96,6 +95,8 @@ func ParseHeader(data []byte) (*Header, error) {
 		return nil, fmt.Errorf("eventLen (%d) != 0 && %d <= eventLen <= %d", eventLen, EventMinLen, EventMaxLen)
 	}
 
+	// TODO: Verify sum record lengths in the header equals the length of the packet.
+
 	return &Header{
 		magic:         binary.BigEndian.Uint32(data[:4]),
 		crc32:         calcCRC,
@@ -108,4 +109,8 @@ func ParseHeader(data []byte) (*Header, error) {
 		itemLen:       itemLen,
 		eventLen:      eventLen,
 	}, nil
+}
+
+func (h *Header) RaceInfoLen() byte {
+	return h.raceInfoLen
 }
