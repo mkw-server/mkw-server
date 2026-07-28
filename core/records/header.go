@@ -95,9 +95,7 @@ func ParseHeader(data []byte) (*Header, error) {
 		return nil, fmt.Errorf("eventLen (%d) != 0 && %d <= eventLen <= %d", eventLen, EventMinLen, EventMaxLen)
 	}
 
-	// TODO: Verify sum record lengths in the header equals the length of the packet.
-
-	return &Header{
+	header := &Header{
 		magic:         binary.BigEndian.Uint32(data[:4]),
 		crc32:         calcCRC,
 		headerLen:     headerLen,
@@ -108,7 +106,17 @@ func ParseHeader(data []byte) (*Header, error) {
 		userLen:       userLen,
 		itemLen:       itemLen,
 		eventLen:      eventLen,
-	}, nil
+	}
+
+	if header.length() != len(data) {
+		return nil, fmt.Errorf("header.length() != len(data) (%d != %d)", header.length(), len(data))
+	}
+
+	return header, nil
+}
+
+func (h *Header) length() int {
+	return int(h.headerLen) + int(h.raceInfoLen) + int(h.raceModeLen) + int(h.roomSelectLen) + int(h.raceDataLen) + int(h.userLen) + int(h.itemLen) + int(h.eventLen)
 }
 
 func (h *Header) RaceInfoLen() byte {
