@@ -17,7 +17,7 @@ const RaceDataLen = 0x40
 const UserLen = 0xc0
 const ItemLen = 0x8
 const EventMinLen = 0x18
-const EventMaxLen = 0x18
+const EventMaxLen = 0xf8
 
 type Header struct {
 	magic         uint32
