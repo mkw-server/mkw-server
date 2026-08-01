@@ -10,7 +10,6 @@ import (
 const HeaderLen = 0x10
 
 // TODO: Move non-header record lenghts to their respective source files.
-const RoomLen = 0x4
 const SelectLen = 0x38
 const RaceDataLen = 0x40
 const UserLen = 0xc0
@@ -124,4 +123,8 @@ func (h *Header) RaceInfoLen() byte {
 
 func (h *Header) RaceModeLen() byte {
 	return h.raceModeLen
+}
+
+func (h *Header) RoomSelectLen() byte {
+	return h.roomSelectLen
 }

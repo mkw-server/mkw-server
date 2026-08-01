@@ -10,6 +10,7 @@ type RacePacket struct {
 	Header   *records.Header
 	RaceInfo *records.RaceInfo
 	RaceMode *records.RaceMode
+	Room     *records.Room
 	// TODO: Add other records.
 }
 
@@ -47,6 +48,15 @@ func parseRacePacket(data []byte) (*RacePacket, error) {
 		}
 		racePacket.RaceMode = raceMode
 		currentOffset += records.RaceModeLen
+	}
+
+	if header.RoomSelectLen() == records.RoomLen {
+		room, err := records.ParseRoom(data[currentOffset:currentOffset+records.RoomLen])
+		if err != nil {
+			return nil, fmt.Errorf("Room parsing falure: %w", err)
+		}
+		racePacket.Room = room
+		currentOffset += records.RoomLen
 	}
 
 	return racePacket, nil
