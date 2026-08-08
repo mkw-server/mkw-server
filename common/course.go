@@ -45,11 +45,22 @@ const (
 	SNESBattleCourse4
 	GBABattleCourse3
 	N64Skyscraper
+	// Only found in Select records.
+	Random Course = 0x43
+	NoVote Course = 0xff
 )
+
+func (c Course) isCourse() bool {
+	return c >= MarioCircuit && c <= N64Skyscraper
+}
 
 // RaceInfo's coursePlayed won't contain NoVote (0x43) or Random (0xff) but a Select record can.
 // So we have to have a different implementation of an "IsValid()" depending on the record type.
-func (c Course) IsRaceInfoCourseValid() bool {
-	// TODO: Check that the course is valid for a given game mode.
-	return c >= MarioCircuit && c <= N64Skyscraper
+func (c Course) IsValid(r RecordIdx) bool {
+	if r == RaceInfo {
+		return c.isCourse()
+	} else if r == RoomSelect {
+		return c.isCourse() || c == Random || c == NoVote
+	}
+	return false
 }

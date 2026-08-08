@@ -45,20 +45,39 @@ const (
 	MiiOutfitLBF
 	MiiOutfitLCM // Invalid!
 	MiiOutfitLCF // Invalid!
+	// Below are only found in Select records.
+	MediumMii
+	SmallMii
+	LargeMii
+	BikerPeach
+	BikerDaisy
+	BikerRosalina
+	// Default character used in Select records.
+	SelectDefaultCharacter
+	// Default value used by spectators (Exclusive to RaceInfo).
+	RaceInfoDefaultCharacter Character = 0xff
 )
 
-const (
-	// Default value used by spectators.
-	DefaultCharacter Character = 0xff
-)
-
-func (c Character) IsValid() bool {
+func (c Character) isMiiOutfitC() bool {
 	switch c {
 	case MiiOutfitSCM, MiiOutfitSCF, MiiOutfitMCM, MiiOutfitMCF, MiiOutfitLCM, MiiOutfitLCF:
-		return false
-	case DefaultCharacter:
 		return true
 	default:
-		return c >= Mario && c <= MiiOutfitLCF
+		return false
 	}
+}
+
+func (c Character) IsValid(r RecordIdx) bool {
+	if c.isMiiOutfitC() {
+		return false
+	}
+
+	// It's important we check for MiiOutfit C before this.
+	if r == RaceInfo {
+		return (c >= Mario && c <= MiiOutfitLCF) || c == RaceInfoDefaultCharacter
+	} else if r == RoomSelect {
+		return c >= Mario && c <= SelectDefaultCharacter
+	}
+
+	return false
 }
