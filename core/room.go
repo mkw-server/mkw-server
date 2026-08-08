@@ -257,3 +257,16 @@ func CloseRoom() {
 func RoomInitialized() bool {
 	return room != nil
 }
+
+func isAidInRoom(aid byte) bool {
+	for _, p := range room.players {
+		if p == nil {
+			continue
+		}
+
+		if p.aid == aid {
+			return true
+		}
+	}
+	return false
+}

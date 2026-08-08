@@ -42,24 +42,24 @@ func ParseRaceInfo(data []byte) (*RaceInfo, error) {
 	lagFrames := binary.BigEndian.Uint16(data[0xc:0xe])
 
 	p1Vehicle := common.Vehicle(data[0xe])
-	if !p1Vehicle.IsValid() {
+	if !p1Vehicle.IsValid(common.RaceInfo) {
 		return nil, fmt.Errorf("invalid p1Vehicle (%d)", int(p1Vehicle))
 	}
 
 	p1Character := common.Character(data[0xf])
-	if !p1Character.IsValid() {
+	if !p1Character.IsValid(common.RaceInfo) {
 		return nil, fmt.Errorf("invalid p1Character (%d)", int(p1Character))
 	}
 
 	// TODO: Check if aid has a guest for stronger validation.
 	p2Vehicle := common.Vehicle(data[0x10])
-	if !p2Vehicle.IsValid() {
+	if !p2Vehicle.IsValid(common.RaceInfo) {
 		return nil, fmt.Errorf("invalid p2Vehicle (%d)", int(p2Vehicle))
 	}
 
 	// TODO: Check if aid has a guest for stronger validation.
 	p2Character := common.Character(data[0x11])
-	if !p2Character.IsValid() {
+	if !p2Character.IsValid(common.RaceInfo) {
 		return nil, fmt.Errorf("invalid p2Character (%d)", int(p2Character))
 	}
 
@@ -77,7 +77,7 @@ func ParseRaceInfo(data []byte) (*RaceInfo, error) {
 	}
 
 	coursePlayed := common.Course(data[0x16])
-	if !coursePlayed.IsRaceInfoCourseValid() {
+	if !coursePlayed.IsValid(common.RaceInfo) {
 		return nil, fmt.Errorf("invalid coursePlayed (%d)", coursePlayed)
 	}
 

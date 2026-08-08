@@ -39,13 +39,23 @@ const (
 	JetBubble
 	DolphinDasher
 	Phantom
+	// Default value only found in Select records.
+	SelectDefaultVehicle
+	// Default value found in RaceInfo (used by spectators or players in the globe scene).
+	RaceInfoDefaultVehicle Vehicle = 0xff
 )
 
-const (
-	// Default value used by spectators.
-	DefaultVehicle Vehicle = 0xff
-)
+func (v Vehicle) isVehicle() bool {
+	return v >= StandardKartS && v <= Phantom
+}
 
-func (v Vehicle) IsValid() bool {
-	return (v >= StandardKartS && v <= Phantom) || v == DefaultVehicle
+func (v Vehicle) IsValid(r RecordIdx) bool {
+	var defaultVehicle Vehicle
+	if r == RaceInfo {
+		defaultVehicle = RaceInfoDefaultVehicle
+	} else if r == RoomSelect {
+		defaultVehicle = SelectDefaultVehicle
+	}
+
+	return v.isVehicle() || v == defaultVehicle
 }

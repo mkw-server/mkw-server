@@ -10,7 +10,6 @@ import (
 const HeaderLen = 0x10
 
 // TODO: Move non-header record lenghts to their respective source files.
-const SelectLen = 0x38
 const RaceDataLen = 0x40
 const UserLen = 0xc0
 const ItemLen = 0x8
