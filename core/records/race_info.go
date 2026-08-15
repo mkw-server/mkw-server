@@ -8,14 +8,11 @@ import (
 )
 
 const RaceInfoLen = 0x28
-const CoinRunnerOrTeamVSMask = 0x80000000
-const PlayerIdTeamMapMask = 0x00000fff
 
 type RaceInfo struct {
 	countdownElapsedTime      uint32
 	raceSeed                  uint32
-	isCoinRunnerOrTeamVS      bool
-	playerIdTeamMap           uint32
+	gameModeInfo              common.GameModeInfo
 	lagFrames                 uint16
 	p1Vehicle                 common.Vehicle
 	p1Character               common.Character
@@ -34,10 +31,11 @@ func ParseRaceInfo(data []byte) (*RaceInfo, error) {
 	countdownElapsedTime := binary.BigEndian.Uint32(data[:0x4])
 	raceSeed := binary.BigEndian.Uint32(data[0x4:0x8])
 
-	raw := binary.BigEndian.Uint32(data[0x8:0xc])
-	isCoinRunnerOrTeamVS := raw&CoinRunnerOrTeamVSMask != 0
-	// TODO: Some sort of validation.
-	playerIdTeamMap := raw & PlayerIdTeamMapMask
+	gameModeInfoRaw := binary.BigEndian.Uint32(data[0x8:0xc])
+	gameModeInfo, err := common.ParseGameModeInfo(gameModeInfoRaw, common.RaceInfo)
+	if err != nil {
+		return nil, fmt.Errorf("invalid gameModeInfo: %v", err)
+	}
 
 	lagFrames := binary.BigEndian.Uint16(data[0xc:0xe])
 
@@ -97,8 +95,7 @@ func ParseRaceInfo(data []byte) (*RaceInfo, error) {
 	return &RaceInfo{
 		countdownElapsedTime:      countdownElapsedTime,
 		raceSeed:                  raceSeed,
-		isCoinRunnerOrTeamVS:      isCoinRunnerOrTeamVS,
-		playerIdTeamMap:           playerIdTeamMap,
+		gameModeInfo:              gameModeInfo,
 		lagFrames:                 lagFrames,
 		p1Vehicle:                 p1Vehicle,
 		p2Vehicle:                 p2Vehicle,
