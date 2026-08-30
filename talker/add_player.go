@@ -17,9 +17,11 @@ type AddPlayerRequest struct {
 	aid      uint8
 	isHost   bool
 	searchId uint64
+	hasGuest bool
 }
 
-const AddPlayerRequestLength = 16
+// TODO: Shouldn't need to update this everytime a field is added, it should be automatic.
+const AddPlayerRequestLength = 17
 
 // Id: ResponseToWFCServer.JoinAccepted (0x01)
 type JoinAcceptedResponse struct {
@@ -28,7 +30,7 @@ type JoinAcceptedResponse struct {
 
 func unpackAddPlayerRequest(msg []byte) (*AddPlayerRequest, error) {
 	if len(msg) != AddPlayerRequestLength {
-		return nil, fmt.Errorf("Unable to unpack AddPlayerMessage! len(msg) != 16 (%d)", len(msg))
+		return nil, fmt.Errorf("Unable to unpack AddPlayerMessage! len(msg) (%d) != %d", len(msg), AddPlayerRequestLength)
 	}
 
 	return &AddPlayerRequest{
@@ -36,7 +38,8 @@ func unpackAddPlayerRequest(msg []byte) (*AddPlayerRequest, error) {
 		port:     binary.BigEndian.Uint16(msg[4:6]),
 		aid:      uint8(msg[6]),
 		isHost:   msg[7] == 1,
-		searchId: binary.BigEndian.Uint64(msg[8:]),
+		searchId: binary.BigEndian.Uint64(msg[8:16]),
+		hasGuest: msg[16] == 1,
 	}, nil
 }
 
@@ -65,7 +68,7 @@ func handleAddPlayerRequest(req *AddPlayerRequest) error {
 		return errors.New("CreateUDPAddr returned nil")
 	}
 
-	err := core.AddPlayerToRoom(addr.String(), req.aid)
+	err := core.AddPlayerToRoom(addr.String(), req.aid, req.hasGuest)
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
