@@ -13,7 +13,8 @@ type Player struct {
 
 	sendQueue chan Packet
 
-	aid byte
+	aid      byte
+	hasGuest bool
 	// We have a few different options on how to structure communication
 	// - I chose to have one goroutine per room to listen and read incoming packets
 	//   - maybe this could be a bottleneck
@@ -32,7 +33,7 @@ type Player struct {
 	isRacer bool
 }
 
-func NewPlayer(addr string, room *Room, aid byte) (*Player, error) {
+func NewPlayer(addr string, room *Room, aid byte, hasGuest bool) (*Player, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to resolve player address %s: %v", addr, err)
@@ -42,6 +43,7 @@ func NewPlayer(addr string, room *Room, aid byte) (*Player, error) {
 		addr:      udpAddr,
 		sendQueue: make(chan Packet, 32),
 		aid:       aid,
+		hasGuest:  hasGuest,
 	}
 
 	return player, nil

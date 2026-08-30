@@ -198,13 +198,13 @@ func getPlayer(aid byte) *Player {
 	return nil
 }
 
-func AddPlayerToRoom(playerAddr string, aid byte) error {
+func AddPlayerToRoom(playerAddr string, aid byte, hasGuest bool) error {
 	if _, exists := room.players[playerAddr]; exists {
 		return fmt.Errorf("Player %s already exists in room", playerAddr)
 	}
 
 	room.aidBitmap = util.SetAid(room.aidBitmap, aid)
-	p, err := NewPlayer(playerAddr, room, aid)
+	p, err := NewPlayer(playerAddr, room, aid, hasGuest)
 	if err != nil {
 		return fmt.Errorf("Failed to create player %s due to", playerAddr)
 	}
