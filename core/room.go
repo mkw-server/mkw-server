@@ -10,23 +10,22 @@ import (
 	"mkw-server/util"
 )
 
-// WFCTalkerInterface allows Room/Player to interact with WFC without circular dependency
+// WFCTalkerInterface allows Room/Aid to interact with WFC without circular dependency
 type WFCTalkerInterface interface {
 	SendPacketDataToWFC(data []byte) error
 }
 
 type Room struct {
-	players map[string]*Player // key is player address string
 
-	// UDP connection for the room, all players send/receive from this (hopefully this won't a large bottleneck with 12 players)
+	// UDP connection for the room, all aids send/receive from this (hopefully this won't a large bottleneck with 12 aids)
 	conn      net.PacketConn
 	addr      *net.UDPAddr
-	broadcast chan Packet // channel for broadcasting packets to all players
+	broadcast chan Packet // channel for broadcasting packets to all aids
 
 	aidBitmap uint32
 
-	// Indicates if the countdown can start. Set when all players are ready and reset when
-	// all players started the countdown.
+	// Indicates if the countdown can start. Set when all aids are ready and reset when
+	// all aids started the countdown.
 	countdownState bool
 }
 
@@ -34,7 +33,6 @@ var room *Room
 
 func InitRoom(roomAddr *net.UDPAddr) error {
 	room = &Room{
-		players: make(map[string]*Player),
 		addr:    roomAddr,
 		// 256 came out of nowhere, needs to be tested
 		broadcast: make(chan Packet, 256),
@@ -79,15 +77,15 @@ func readLoop() {
 			return
 		}
 
-		p := room.players[addr.String()]
-		if p == nil {
-			logging.Log("Non-player sent a packet. Address: %v", addr)
+		a := aids[addr.String()]
+		if a == nil {
+			logging.Log("Non-aid sent a packet. Address: %v", addr)
 			continue
 		}
 
 		pkt := Packet{
 			sender:       addr,
-			player:       p,
+			aid:       a,
 			data:         append([]byte{}, buf[:n]...),
 			receivedTime: time.Now(),
 		}
@@ -98,20 +96,20 @@ func readLoop() {
 
 func handlePacket(pkt *Packet) {
 	data := pkt.data
-	p := pkt.player
+	a := pkt.aid
 
-	if !p.readyForCountdown && isReadyPacket(data) {
-		handlePlayerReady(p)
+	if !a.readyForCountdown && isReadyPacket(data) {
+		handleAidReady(a)
 		return
 	}
 
-	if p.readyForCountdown && hasCountdownStarted(data) {
-		handlePlayerStartedCountdown(p)
+	if a.readyForCountdown && hasCountdownStarted(data) {
+		handleAidStartedCountdown(a)
 		return
 	}
 
 	if isPongPacket(data) {
-		handlePongPacket(p)
+		handlePongPacket(a)
 		return
 	}
 
@@ -122,7 +120,7 @@ func handlePacket(pkt *Packet) {
 
 func broadcastLoop() {
 	for pkt := range room.broadcast {
-		sender := room.players[pkt.sender.String()]
+		sender := aids[pkt.sender.String()]
 
 		// sender can be nil if they disconnect between sending the packet and the broadcast
 		if sender == nil {
@@ -151,9 +149,9 @@ func broadcastLoop() {
 		receivingAids := util.GetSendToAids(aidBitmap)
 
 		for _, aid := range *receivingAids {
-			p := getPlayer(aid)
-			if p == nil {
-				// This can happen when someone left, but wfc-server hasn't yet informed other players yet
+			a := getAid(aid)
+			if a == nil {
+				// This can happen when someone left, but wfc-server hasn't yet informed other aids yet
 				continue
 			}
 
@@ -162,80 +160,80 @@ func broadcastLoop() {
 				continue
 			}
 
-			_, err := room.conn.WriteTo(pkt.data, p.addr)
+			_, err := room.conn.WriteTo(pkt.data, a.addr)
 			if err != nil {
-				logging.Log("Error writitng to aid %d", p.aid)
+				logging.Log("Error writitng to aid %d", a.aid)
 				continue
 			}
 		}
 	}
 }
 
-// Sends a ping to all players every 1/2 seconds.
+// Sends a ping to all aids every 1/2 seconds.
 func pingLoop() {
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 	for range ticker.C {
-		for _, p := range room.players {
-			if p == nil {
+		for _, a := range aids {
+			if a == nil {
 				continue
 			}
-			sendPing(p)
+			sendPing(a)
 		}
 	}
 }
 
-func getPlayer(aid byte) *Player {
-	for addr, p := range room.players {
-		if addr == "" || p == nil {
+func getAid(aid byte) *Aid {
+	for addr, a := range aids {
+		if addr == "" || a == nil {
 			continue
 		}
 
-		if p.aid == aid {
-			return p
+		if a.aid == aid {
+			return a
 		}
 	}
 	return nil
 }
 
-func AddPlayerToRoom(playerAddr string, aid byte, hasGuest bool) error {
-	if _, exists := room.players[playerAddr]; exists {
-		return fmt.Errorf("Player %s already exists in room", playerAddr)
+func AddAidToRoom(aidAddr string, aid byte, hasGuest bool) error {
+	if _, exists := aids[aidAddr]; exists {
+		return fmt.Errorf("Aid %s already exists in room", aidAddr)
 	}
 
 	room.aidBitmap = util.SetAid(room.aidBitmap, aid)
-	p, err := NewPlayer(playerAddr, room, aid, hasGuest)
+	a, err := NewAid(aidAddr, room, aid, hasGuest)
 	if err != nil {
-		return fmt.Errorf("Failed to create player %s due to", playerAddr)
+		return fmt.Errorf("Failed to create aid %s due to", aidAddr)
 	}
 
-	room.players[playerAddr] = p
+	aids[aidAddr] = a
 
-	logging.Log("Successfully added player %s (aid: %d). Aid count is %d", playerAddr, p.aid, GetCurrentPlayerCount())
+	logging.Log("Successfully added aid %s (aid: %d). Aid count is %d", aidAddr, a.aid, GetCurrentAidCount())
 	return nil
 }
 
-func RemovePlayerFromRoom(playerAddr string) error {
-	p, _ := room.players[playerAddr]
+func RemoveAidFromRoom(aidAddr string) error {
+	a, _ := aids[aidAddr]
 
-	if p == nil {
-		return fmt.Errorf("Player %s not in room, can't remove", playerAddr)
+	if a == nil {
+		return fmt.Errorf("Aid %s not in room, can't remove", aidAddr)
 	}
 
-	room.aidBitmap = util.ClearAid(room.aidBitmap, p.aid)
+	room.aidBitmap = util.ClearAid(room.aidBitmap, a.aid)
 
-	logging.Log("Successfully removed player %s (aid: %d). Aid count is %d", playerAddr, p.aid, GetCurrentPlayerCount())
+	logging.Log("Successfully removed aid %s (aid: %d). Aid count is %d", aidAddr, a.aid, GetCurrentAidCount())
 
-	delete(room.players, playerAddr)
+	delete(aids, aidAddr)
 	return nil
 }
 
-// gets the player if the player is the room's host
-func GetHost(playerAddr string) *Player {
-	p, _ := room.players[playerAddr]
+// gets the aid if the aid is the room's host
+func GetHost(aidAddr string) *Aid {
+	a, _ := aids[aidAddr]
 
-	if p == nil {
-		logging.Log("Player %s not in room, can't remove")
+	if a == nil {
+		logging.Log("Aid %s not in room, can't remove")
 		return nil
 	}
 
@@ -246,8 +244,8 @@ func GetRoomAddr() string {
 	return room.addr.String()
 }
 
-func GetCurrentPlayerCount() int {
-	return len(room.players)
+func GetCurrentAidCount() int {
+	return len(aids)
 }
 
 func CloseRoom() {
@@ -259,12 +257,12 @@ func RoomInitialized() bool {
 }
 
 func isAidInRoom(aid byte) bool {
-	for _, p := range room.players {
-		if p == nil {
+	for _, a := range aids {
+		if a == nil {
 			continue
 		}
 
-		if p.aid == aid {
+		if a.aid == aid {
 			return true
 		}
 	}

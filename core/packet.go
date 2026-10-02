@@ -9,7 +9,7 @@ const RacePacketMagic uint8 = 0xb
 
 type Packet struct {
 	sender       net.Addr
-	player       *Player
+	aid 		 *Aid
 	racePacket   *RacePacket
 	data         []byte
 	receivedTime time.Time

@@ -11,7 +11,7 @@ import (
 	"mkw-server/util"
 )
 
-// WFCTalker talks over TCP to wfc-server, mainly handling adding/removing players from the room
+// WFCTalker talks over TCP to wfc-server, mainly handling adding/removing aids from the room
 // its messy currently since it does a lot and the messages aren't the best (not finalized)
 type WFCTalker struct {
 	conn net.Conn // TCP connection to wfc-server
@@ -23,19 +23,19 @@ var wfcTalker *WFCTalker
 type RequestToMKWServer uint8
 
 const (
-	AddPlayer    = 0x01 // Request from wfc-server to add a player
-	RemovePlayer = 0x02 // Request from wfc-server to remove a player
+	AddAid    = 0x01 // Request from wfc-server to add a aid
+	RemoveAid = 0x02 // Request from wfc-server to remove a aid
 )
 
 func (reqType RequestToMKWServer) valid() bool {
-	return reqType == AddPlayer || reqType == RemovePlayer
+	return reqType == AddAid || reqType == RemoveAid
 }
 
 type ResponseFromMKWServer uint8
 
 const (
-	Ready        = 0x00 // Response to wfc-server informing room is ready for players
-	JoinAccepted = 0x01 // Response to wfc-server confirming a successful AddPlayer
+	Ready        = 0x00 // Response to wfc-server informing room is ready for aids
+	JoinAccepted = 0x01 // Response to wfc-server confirming a successful AddAid
 	Log          = 0xff // Informs wfc-server of a mkw-server log
 )
 
@@ -93,43 +93,43 @@ func Start() {
 func handleRequest(reqType RequestToMKWServer) {
 	// First byte indicates request type
 	switch reqType {
-	case AddPlayer:
-		msg := make([]byte, AddPlayerRequestLength)
+	case AddAid:
+		msg := make([]byte, AddAidRequestLength)
 		_, err := io.ReadFull(wfcTalker.conn, msg)
 		if err != nil {
-			logging.Log("Error reading AddPlayer data from wfc-server: %v", err)
+			logging.Log("Error reading AddAid data from wfc-server: %v", err)
 			return
 		}
 
-		req, err := unpackAddPlayerRequest(msg)
+		req, err := unpackAddAidRequest(msg)
 		if err != nil {
 			logging.Log(err.Error())
 			return
 		}
 
-		err = handleAddPlayerRequest(req)
+		err = handleAddAidRequest(req)
 		if err != nil {
-			logging.Log("Failed to handle AddPlayer for reason %s:", err.Error())
+			logging.Log("Failed to handle AddAid for reason %s:", err.Error())
 		}
-		logging.Log("Successfully handled AddPlayer for player %s", util.FormatIPPort(req.ip, req.port))
+		logging.Log("Successfully handled AddAid for aid %s", util.FormatIPPort(req.ip, req.port))
 
-	case RemovePlayer:
-		msg := make([]byte, RemovePlayerRequestLength)
+	case RemoveAid:
+		msg := make([]byte, RemoveAidRequestLength)
 		_, err := io.ReadFull(wfcTalker.conn, msg)
 		if err != nil {
-			logging.Log("Error reading RemovePlayer data from wfc-server: %v", err)
+			logging.Log("Error reading RemoveAid data from wfc-server: %v", err)
 			return
 		}
 
-		req, err := unpackRemovePlayerRequest(msg)
+		req, err := unpackRemoveAidRequest(msg)
 		if err != nil {
-			logging.Log("Unable to unpack RemovePlayer for reason %s", err.Error())
+			logging.Log("Unable to unpack RemoveAid for reason %s", err.Error())
 			return
 		}
 
-		err = handleRemovePlayerRequest(req)
+		err = handleRemoveAidRequest(req)
 		if err != nil {
-			logging.Log("Failed to handle RemovePlayer for reason %s:", err.Error())
+			logging.Log("Failed to handle RemoveAid for reason %s:", err.Error())
 		}
 
 	default:

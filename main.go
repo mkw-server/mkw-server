@@ -13,8 +13,8 @@ import (
 )
 
 // mkw-server starts when a group is created in wfc-server and a group is
-// created in wfc-server when it matches two players, well before players are notified they're
-// in a group. mkw-server has time to setup and start listeners before players are notified
+// created in wfc-server when it matches two aids, well before aids are notified they're
+// in a group. mkw-server has time to setup and start listeners before aids are notified
 func main() {
 	err := logging.InitLogFile(talker.SendMessageToWFC)
 	if err != nil {
@@ -23,7 +23,7 @@ func main() {
 	}
 	defer logging.CloseLogFile()
 
-	// roomAddr is the address players send to and receive from
+	// roomAddr is the address aids send to and receive from
 	// reason this gets passed in is to help mkw-server manage multiple rooms,
 	// could also be useful in the case mkw-server isnt running on the same machine as wfc-serve
 	roomAddr := flag.String("room-addr", "", "UDP address (ip:port) the room listens on")
