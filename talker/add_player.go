@@ -10,8 +10,8 @@ import (
 	"mkw-server/util"
 )
 
-// Id: RequestFromWFCServer.AddPlayer (0x01)
-type AddPlayerRequest struct {
+// Id: RequestFromWFCServer.AddAid (0x01)
+type AddAidRequest struct {
 	ip       uint32
 	port     uint16
 	aid      uint8
@@ -21,19 +21,19 @@ type AddPlayerRequest struct {
 }
 
 // TODO: Shouldn't need to update this everytime a field is added, it should be automatic.
-const AddPlayerRequestLength = 17
+const AddAidRequestLength = 17
 
 // Id: ResponseToWFCServer.JoinAccepted (0x01)
 type JoinAcceptedResponse struct {
 	searchId uint64
 }
 
-func unpackAddPlayerRequest(msg []byte) (*AddPlayerRequest, error) {
-	if len(msg) != AddPlayerRequestLength {
-		return nil, fmt.Errorf("Unable to unpack AddPlayerMessage! len(msg) (%d) != %d", len(msg), AddPlayerRequestLength)
+func unpackAddAidRequest(msg []byte) (*AddAidRequest, error) {
+	if len(msg) != AddAidRequestLength {
+		return nil, fmt.Errorf("Unable to unpack AddAidMessage! len(msg) (%d) != %d", len(msg), AddAidRequestLength)
 	}
 
-	return &AddPlayerRequest{
+	return &AddAidRequest{
 		ip:       binary.BigEndian.Uint32(msg[0:4]),
 		port:     binary.BigEndian.Uint16(msg[4:6]),
 		aid:      uint8(msg[6]),
@@ -52,12 +52,12 @@ func packJoinAcceptedResponse(searchId uint64) []byte {
 }
 
 // addr is the address of the client that wants to join the room
-func handleAddPlayerRequest(req *AddPlayerRequest) error {
+func handleAddAidRequest(req *AddAidRequest) error {
 	if req == nil {
-		return errors.New("AddPlayerRequest is nil!")
+		return errors.New("AddAidRequest is nil!")
 	}
 
-	logging.Log("Handling AddPlayer. Attempting to add player %s", util.FormatIPPort(req.ip, req.port))
+	logging.Log("Handling AddAid. Attempting to add aid %s", util.FormatIPPort(req.ip, req.port))
 
 	if !core.RoomInitialized() {
 		return errors.New("Room isn't initialized, this should not happen at this point")
@@ -68,16 +68,16 @@ func handleAddPlayerRequest(req *AddPlayerRequest) error {
 		return errors.New("CreateUDPAddr returned nil")
 	}
 
-	err := core.AddPlayerToRoom(addr.String(), req.aid, req.hasGuest)
+	err := core.AddAidToRoom(addr.String(), req.aid, req.hasGuest)
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
 
-	logging.Log("Sending wfc-server PlayerAdded")
+	logging.Log("Sending wfc-server AidAdded")
 
 	err = SendToWFC(packJoinAcceptedResponse(req.searchId))
 	if err != nil {
-		return fmt.Errorf("Failed to notify WFC of new player: %v", err)
+		return fmt.Errorf("Failed to notify WFC of new aid: %v", err)
 	}
 	return nil
 }

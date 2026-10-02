@@ -10,31 +10,31 @@ import (
 	"mkw-server/util"
 )
 
-// Id: RemovePlayer (0x02)
-type RemovePlayerRequest struct {
+// Id: RemoveAid (0x02)
+type RemoveAidRequest struct {
 	ip   uint32
 	port uint16
 }
 
-const RemovePlayerRequestLength = 6
+const RemoveAidRequestLength = 6
 
-func unpackRemovePlayerRequest(msg []byte) (*RemovePlayerRequest, error) {
-	if len(msg) != RemovePlayerRequestLength {
-		return nil, fmt.Errorf("RemovePlayerRequest isn't 6 bytes (%d)", len(msg))
+func unpackRemoveAidRequest(msg []byte) (*RemoveAidRequest, error) {
+	if len(msg) != RemoveAidRequestLength {
+		return nil, fmt.Errorf("RemoveAidRequest isn't 6 bytes (%d)", len(msg))
 	}
 
-	return &RemovePlayerRequest{
+	return &RemoveAidRequest{
 		ip:   binary.BigEndian.Uint32(msg[0:4]),
 		port: binary.BigEndian.Uint16(msg[4:6]),
 	}, nil
 }
 
-func handleRemovePlayerRequest(req *RemovePlayerRequest) error {
+func handleRemoveAidRequest(req *RemoveAidRequest) error {
 	if req == nil {
-		return errors.New("RemovePlayerRequest is nil")
+		return errors.New("RemoveAidRequest is nil")
 	}
 
-	logging.Log("Handling RemovePlayer. Attempting to remove player %s", util.FormatIPPort(req.ip, req.port))
+	logging.Log("Handling RemoveAid. Attempting to remove aid %s", util.FormatIPPort(req.ip, req.port))
 
 	if !core.RoomInitialized() {
 		return errors.New("Room isn't initialized, this shouldn't happen at this point")
@@ -42,10 +42,10 @@ func handleRemovePlayerRequest(req *RemovePlayerRequest) error {
 
 	addr := util.CreateUDPAddr(req.ip, req.port)
 	if addr == nil {
-		return errors.New("CreateUDPAddr failed in handleRemovePlayerRequest")
+		return errors.New("CreateUDPAddr failed in handleRemoveAidRequest")
 	}
 
-	err := core.RemovePlayerFromRoom(addr.String())
+	err := core.RemoveAidFromRoom(addr.String())
 	if err != nil {
 		return err
 	}
