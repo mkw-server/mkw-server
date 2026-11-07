@@ -9,6 +9,9 @@ import (
 	"mkw-server/logging"
 )
 
+// "IT"
+const introWaitTimeMagic = 0x4954
+
 // "FT"
 const finishTimeMagic = 0x4654
 
@@ -16,7 +19,7 @@ const finishTimeMagic = 0x4654
 const raceFrameMagic = 0x5246
 const raceFrameMagicOffset = 0x2
 
-const finishTimeSize = 4
+const timePacketSize = 4
 
 // 60 frames per second, 60 seconds per minute, 6 minutes max per race.
 const maxRaceFrames = 60 * 60 * 6
@@ -39,12 +42,20 @@ type RaceFrame struct {
 	SentTime [12]uint16
 }
 
-func isFinishTimePacket(data []byte) bool {
-	if len(data) != finishTimeSize {
-		return false
-	}
+// Time packet is 2 bytes magic and 2 bytes time. Clients must send them for the replay.
+// Clients also expect to hear an ack back. The two types are introWaitTime and raceFinishTime.
+func isTimePacket(data []byte, magic uint16) bool {
+	return len(data) == timePacketSize && binary.BigEndian.Uint16(data[:2]) == magic
+}
 
-	return binary.BigEndian.Uint16(data[:2]) == finishTimeMagic
+func handleIntroWaitTimePacket(a *Aid, data []byte) error {
+	a.introWaitTime = binary.BigEndian.Uint16(data[2:4])
+
+	_, err := room.conn.WriteTo(binary.BigEndian.AppendUint16(nil, introWaitTimeMagic), a.addr)
+	if err != nil {
+		return fmt.Errorf("send intro wait time ack failed: %w", err)
+	}
+	return nil
 }
 
 func handleFinishTimePacket(a *Aid, data []byte) error {
@@ -132,6 +143,7 @@ func resetRace() {
 			clear(p.frames[:])
 		}
 		a.raceFinishTime = 0
+		a.introWaitTime = 0
 		a.lastSentTime = 0
 		a.missingRaceFrames = nil
 		a.hasConfig = false
@@ -143,7 +155,7 @@ func resetRace() {
 	disconnectedPlayersRecords = nil
 	disconnectedRacePacketRecords = nil
 
-	aidsAtRaceStart = aidsAtRaceStart[:]
+	aidsAtRaceStart = aidsAtRaceStart[:0]
 	numPlayersAtRaceStart = playerCount()
 	for _, a := range aids {
 		if a == nil || !a.isRacer {

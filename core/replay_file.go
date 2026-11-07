@@ -23,10 +23,12 @@ type ReplayFileHeader struct {
 	GameMode      common.GameMode
 	BattleType    common.BattleType
 	GameModeFlags common.GameModeFlags
+	Seed1         uint32
 }
 
 type AidRecord struct {
 	Aid              byte
+	IntroWaitTime    uint16
 	RaceFinishTime   uint16
 	LocalPlayerCount byte
 	Disconnected     bool
@@ -39,6 +41,7 @@ type AidRecord struct {
 }
 
 type PlayerRecord struct {
+	// TODO: Remove! Redundant! I'm dumb!
 	PlayerId  byte
 	Aid       byte
 	Config    PlayerConfig
@@ -120,6 +123,7 @@ func createReplayFileHeader() (*ReplayFileHeader, error) {
 		GameMode:      config.GameMode,
 		BattleType:    config.BattleType,
 		GameModeFlags: config.GameModeFlags,
+		Seed1:         config.Seed1,
 	}, nil
 }
 

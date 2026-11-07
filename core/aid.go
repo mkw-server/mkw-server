@@ -22,6 +22,8 @@ type Aid struct {
 	hasGuest      bool
 	raceFrameSize int
 	players       []*Player
+	// Time (in frames) waiting for the countdown to begin in race scene. Needed for replays to sync.
+	introWaitTime uint16
 	// Time (in frames) the race results came up. Reset before the start of the next race.
 	raceFinishTime uint16
 

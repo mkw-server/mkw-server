@@ -48,6 +48,7 @@ func (a *Aid) createAidRecord(disconnected bool) (*AidRecord, error) {
 
 	return &AidRecord{
 		Aid:              a.aid,
+		IntroWaitTime:    a.introWaitTime,
 		RaceFinishTime:   endTime,
 		Disconnected:     disconnected,
 		LocalPlayerCount: byte(a.localPlayerCount()),
