@@ -125,7 +125,15 @@ func handlePacket(pkt *Packet) {
 		return
 	}
 
-	if isFinishTimePacket(data) {
+	if isTimePacket(data, introWaitTimeMagic) {
+		err := handleIntroWaitTimePacket(a, data)
+		if err != nil {
+			logging.Log("aid %d intro wait time handling error: %v", a.aid, err)
+		}
+		return
+	}
+
+	if isTimePacket(data, finishTimeMagic) {
 		err := handleFinishTimePacket(a, data)
 		if err != nil {
 			logging.Log("aid %d finish time handling error: %v", a.aid, err)

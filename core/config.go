@@ -14,7 +14,7 @@ const configMagic = 0x4346
 // "CA"
 const configAckMagic = 0x4341
 
-const raceConfigSize = 0x5
+const raceConfigSize = 0x9
 
 type RaceConfig struct {
 	Course        common.Course
@@ -22,14 +22,16 @@ type RaceConfig struct {
 	GameMode      common.GameMode
 	BattleType    common.BattleType
 	GameModeFlags common.GameModeFlags
+	Seed1         uint32
 }
 
 const rflWifiDataSize = 0xa0
-const aidConfigSize = rflWifiDataSize + 0x1
+const aidConfigSize = rflWifiDataSize + 0x1 + 0x4
 
 type AidConfig struct {
 	RegionLine  common.RegionLine
 	RFLWifiData [rflWifiDataSize]byte
+	Seed2       uint32
 }
 
 const playerConfigSize = 0xc

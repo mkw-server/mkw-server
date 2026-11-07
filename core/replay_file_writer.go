@@ -29,7 +29,8 @@ func writeReplayFile() error {
 		return err
 	}
 
-	path := filepath.Join(dir, now.Format("2006-01-02_15-04-05")+replayFileExt)
+	fileName := now.Format("2006-01-02_15-04-05") + replayFileExt
+	path := filepath.Join(dir, fileName)
 
 	if err := os.WriteFile(path, data, 0664); err != nil {
 		return fmt.Errorf("failed to write replay file %s: %w", path, err)
@@ -119,6 +120,7 @@ func serializeReplayFile() ([]byte, error) {
 
 	for _, a := range aidRecords {
 		write(a.Aid)
+		write(a.IntroWaitTime)
 		write(a.RaceFinishTime)
 		write(a.LocalPlayerCount)
 		write(a.Disconnected)
@@ -128,6 +130,7 @@ func serializeReplayFile() ([]byte, error) {
 		write(a.IdxToAidMap)
 
 		for _, times := range a.TimeRecvPackets {
+			// TODO: Remove, redundant.
 			write(uint16(len(times)))
 			write(times)
 		}
@@ -137,6 +140,7 @@ func serializeReplayFile() ([]byte, error) {
 		write(p.PlayerId)
 		write(p.Aid)
 		write(p.Config)
+		// TODO: Remove redundant length.
 		write(uint16(len(p.RaceFrame)))
 		write(p.RaceFrame)
 	}
