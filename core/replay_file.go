@@ -41,9 +41,6 @@ type AidRecord struct {
 }
 
 type PlayerRecord struct {
-	// TODO: Remove! Redundant! I'm dumb!
-	PlayerId  byte
-	Aid       byte
 	Config    PlayerConfig
 	RaceFrame []RaceFramePlayer
 }
@@ -60,8 +57,9 @@ type RacePacketIndex struct {
 }
 
 type RacePacketRecord struct {
-	Index       RacePacketIndex
+	// Aid is here as a helper during replay file creation but doesn't actually get written.
 	Aid         byte
+	Index       RacePacketIndex
 	RacePackets [][]byte
 }
 
@@ -174,7 +172,7 @@ func createPlayerRecords() error {
 
 	// Sort by playerId
 	slices.SortFunc(playerRecords, func(a, b PlayerRecord) int {
-		return cmp.Compare(a.PlayerId, b.PlayerId)
+		return cmp.Compare(a.Config.PlayerId, b.Config.PlayerId)
 	})
 
 	logging.Log("Finished creating %d Player records", len(playerRecords))
