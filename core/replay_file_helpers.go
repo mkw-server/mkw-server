@@ -131,8 +131,6 @@ func saveDisconnectedAidRecord(a *Aid) error {
 
 func (p *Player) createPlayerRecord(lastSentTime uint16) PlayerRecord {
 	playerRecord := PlayerRecord{
-		PlayerId:  p.playerId,
-		Aid:       p.aid,
 		Config:    p.config,
 		RaceFrame: p.frames[:lastSentTime],
 	}
@@ -199,8 +197,8 @@ func (a *Aid) createRacePacketRecord(disconnected bool) (RacePacketRecord, error
 	}
 
 	rec := RacePacketRecord{
-		Index:       index,
 		Aid:         aid,
+		Index:       index,
 		RacePackets: packets,
 	}
 

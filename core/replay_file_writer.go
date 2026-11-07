@@ -130,18 +130,12 @@ func serializeReplayFile() ([]byte, error) {
 		write(a.IdxToAidMap)
 
 		for _, times := range a.TimeRecvPackets {
-			// TODO: Remove, redundant.
-			write(uint16(len(times)))
 			write(times)
 		}
 	}
 
 	for _, p := range playerRecords {
-		write(p.PlayerId)
-		write(p.Aid)
 		write(p.Config)
-		// TODO: Remove redundant length.
-		write(uint16(len(p.RaceFrame)))
 		write(p.RaceFrame)
 	}
 
@@ -150,10 +144,8 @@ func serializeReplayFile() ([]byte, error) {
 			return nil, fmt.Errorf("aid %d has %d race packets but its index says %d", r.Aid, len(r.RacePackets), r.Index.RacePacketCount)
 		}
 
-		write(r.Aid)
 		write(r.Index.TotalSize)
 		write(r.Index.RacePacketCount)
-		write(uint16(len(r.Index.TimeToOffsetIdx)))
 		write(r.Index.TimeToOffsetIdx)
 		write(r.Index.PacketOffsets)
 		for _, p := range r.RacePackets {
