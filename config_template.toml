@@ -1,0 +1,3 @@
+ReplayFileOutPath = "{absolute_path_here}"
+# Groups output directory of replay files by date (MM-DD-YYYY).
+GroupReplayFilesByDate = false

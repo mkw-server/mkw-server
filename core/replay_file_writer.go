@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"mkw-server/config"
 	"mkw-server/logging"
 )
 
@@ -45,10 +46,15 @@ func writeReplayFile() error {
 	return nil
 }
 
-// Returns the output directory, creates it if needed.
-func replayDir(now time.Time) (string, error) {
-	// For now, the directory is relative to the executable.
-	// TODO: Make configurable.
+func baseReplaysDir() (string, error) {
+	cfgPath := config.ReplayFileOutPath()
+	info, err := os.Stat(cfgPath)
+	if err == nil && info.IsDir() {
+		return cfgPath, nil
+	}
+
+	// If the configured output directory can't be used, default directory is the replays
+	// directory relative to the mkw-server executable.
 	exePath, err := os.Executable()
 	if err != nil {
 		return "", err
@@ -58,20 +64,37 @@ func replayDir(now time.Time) (string, error) {
 		return "", err
 	}
 
-	replaysDir := filepath.Join(filepath.Dir(exePath), "replays")
-	dateDir := filepath.Join(replaysDir, now.Format("01-02-2006"))
+	return filepath.Join(filepath.Dir(exePath), "replays"), nil
+}
 
-	if err := os.MkdirAll(dateDir, 0775); err != nil {
+func replayDir(now time.Time) (string, error) {
+	replaysDir, err := baseReplaysDir()
+	if err != nil {
 		return "", err
 	}
 
-	for _, d := range []string{replaysDir, dateDir} {
-		if err := setUserPermissions(d, 0775); err != nil {
+	dirs := []string{replaysDir}
+	outDir := replaysDir
+
+	// Creates and writes to a path based on the current date (MM-DD-YYYY) if enabled.
+	if config.GroupReplayFilesByDate() {
+		outDir = filepath.Join(replaysDir, now.Format("01-02-2006"))
+		dirs = append(dirs, outDir)
+	}
+
+	err = os.MkdirAll(outDir, 0775)
+	if err != nil {
+		return "", err
+	}
+
+	for _, d := range dirs {
+		err := setUserPermissions(d, 0775)
+		if err != nil {
 			return "", fmt.Errorf("failed to set permissions on %s: %w", d, err)
 		}
 	}
 
-	return dateDir, nil
+	return outDir, nil
 }
 
 // wfc-server spawns the mkw-server executable as a sudo-ed user. This means any files/directories

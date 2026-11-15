@@ -6,7 +6,7 @@ import (
 
 const NoIdx = 0xff
 
-func config() (*RaceConfig, error) {
+func raceConfig() (*RaceConfig, error) {
 	var firstAid bool = true
 	var unanimousRaceConfig RaceConfig
 	for _, a := range aids {

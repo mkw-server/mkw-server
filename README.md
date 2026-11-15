@@ -12,6 +12,10 @@ mkw-server is the WIP client server component of MKW-Server. Clients send [Race 
 2. Run `go build` to build the `mkw-server` executable.
 3. Add the path to the `mkw-server` executable in [wfc-server's config.xml](https://github.com/mkw-server/wfc-server). This allows wfc-server to locate and launch mkw-server instances.
 
+## Configuration
+
+To optionally configure, copy `config_template.toml` to `config.toml` and fill in the values.
+
 ## Contributing
 
 Contributions are appreciated! If contributing, please attach your branch to the relevant issue or create a new issue if none exists.

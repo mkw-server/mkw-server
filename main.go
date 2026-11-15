@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"mkw-server/config"
 	"mkw-server/controller"
 	"mkw-server/logging"
 	"mkw-server/talker"
@@ -22,6 +23,12 @@ func main() {
 		os.Exit(1)
 	}
 	defer logging.CloseLogFile()
+
+	err = config.LoadConfig()
+	if err != nil {
+		logging.Log("Failed to load config file %s: %v", config.ConfigFileName, err)
+		os.Exit(1)
+	}
 
 	// roomAddr is the address aids send to and receive from
 	// reason this gets passed in is to help mkw-server manage multiple rooms,
