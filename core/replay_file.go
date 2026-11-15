@@ -106,7 +106,7 @@ func createReplayFile() error {
 }
 
 func createReplayFileHeader() (*ReplayFileHeader, error) {
-	config, err := config()
+	config, err := raceConfig()
 	if err != nil {
 		return nil, err
 	}

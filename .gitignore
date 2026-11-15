@@ -4,3 +4,5 @@ replays/*
 .nvim.lua
 
 mkw-server
+
+config.toml
